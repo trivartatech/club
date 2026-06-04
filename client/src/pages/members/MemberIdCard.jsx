@@ -93,7 +93,7 @@ function CardBack() {
       className="rounded-xl overflow-hidden shadow-lg print:shadow-none"
       style={{ width: CARD_W, height: CARD_H }}
     >
-      <img src="/idcard-back.png" alt="Card terms and conditions" className="w-full h-full object-cover" />
+      <img src="/idcard-back.png?v=2" alt="Card terms and conditions" className="w-full h-full object-cover" />
     </div>
   );
 }
