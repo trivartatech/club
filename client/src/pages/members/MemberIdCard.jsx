@@ -89,6 +89,7 @@ function CardFront({ member }) {
 function CardBack() {
   return (
     <div
+      id="id-card-back"
       className="rounded-xl overflow-hidden shadow-lg print:shadow-none"
       style={{ width: CARD_W, height: CARD_H }}
     >
@@ -120,18 +121,19 @@ export default function MemberIdCard() {
       </div>
 
       <div id="id-card-print" className="flex flex-col items-center gap-8">
-        <div className="flex flex-col items-center gap-1 print:pt-12">
+        <div className="flex flex-col items-center gap-1">
           <CardFront member={member} />
           <div className="no-print text-center text-[11px] text-gray-400">Front — Page 1</div>
         </div>
-        <div className="flex flex-col items-center gap-1 print:pt-12">
+        <div className="flex flex-col items-center gap-1">
           <CardBack />
           <div className="no-print text-center text-[11px] text-gray-400">Back — Page 2</div>
         </div>
       </div>
 
       <p className="no-print text-center text-xs text-gray-400 mt-4">
-        Tip: in the print dialog keep Margins on “Default” and enable “Background graphics” so the card art prints.
+        Sized for an ID-card printer: each side prints to an exact 86 × 54 mm (CR80) page with no margins.
+        In the print dialog, set Margins to “None” / paper size to the card, and enable “Background graphics”.
       </p>
     </div>
   );

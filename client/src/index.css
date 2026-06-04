@@ -30,14 +30,28 @@
 }
 
 @media print {
-  @page { margin: 14mm; }
+  @page { margin: 14mm; }                          /* default pages (e.g. receipt) */
+  @page idcard { size: 86mm 54mm; margin: 0; }     /* CR80 ID-card printer */
   html, body { background: white; height: auto !important; overflow: visible !important; }
   #root { height: auto !important; overflow: visible !important; }
   #receipt { page-break-inside: avoid; }
-  /* Print front and back on separate pages */
-  #id-card-print { display: block !important; }
-  #id-card, #id-card-print > div { page-break-inside: avoid; break-inside: avoid; }
+
+  /* ID card: each side fills exactly one 86 x 54 mm page, no margins.
+     The 460x291px card is scaled down so the TEXT scales with it. */
+  #id-card-print { page: idcard; display: block !important; }
+  #id-card-print > div {
+    width: 86mm; height: 54mm;
+    padding: 0 !important; margin: 0 !important;
+    position: relative; overflow: hidden;
+    page-break-inside: avoid; break-inside: avoid;
+  }
   #id-card-print > div + div { page-break-before: always; break-before: page; }
-  /* Keep background colours/photos when printing the ID card */
+  #id-card, #id-card-back {
+    position: absolute; top: 0; left: 0;
+    transform: scale(0.7066, 0.7013);   /* 460px->86mm, 291px->54mm */
+    transform-origin: top left;
+    box-shadow: none !important; border-radius: 0 !important;
+  }
+  /* Keep background colours/photos when printing */
   #id-card-print, #id-card-print * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
