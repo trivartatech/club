@@ -2,7 +2,9 @@
 
 Membership, dues, payments and ID-card management for the club.
 
-- **Backend:** Node.js + Express + `node:sqlite` (requires **Node ≥ 22.5**)
+- **Backend:** Node.js + Express + SQLite. Runs on **Node ≥ 18** — uses the
+  built-in `node:sqlite` on Node ≥ 22.5, otherwise the `better-sqlite3` fallback
+  (installed automatically as an optional dependency)
 - **Frontend:** React (Vite, Tailwind) — pre-built into `client/dist`, served by the backend in production
 - **App port:** 3008
 

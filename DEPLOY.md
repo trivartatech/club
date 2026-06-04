@@ -11,7 +11,9 @@ do **not** need to build anything — just install the server dependencies.
 
 ## 1. Create the site in CloudPanel
 - **Sites → Add Site → Create a Node.js Site**
-- **Node.js version: 22 or 24** (required — the app uses `node:sqlite`, which needs Node ≥ 22.5; Node 18/20 will NOT work)
+- **Node.js version: 18 or newer.** On Node ≥ 22.5 it uses the built-in
+  `node:sqlite`; on older Node (18/20) it auto-installs `better-sqlite3` as a
+  fallback during `npm install`. (Node 22+ recommended.)
 - **App Port: 3008**
 - Domain: `club.trivarta.in`, Site user: `trivarta-club`
 

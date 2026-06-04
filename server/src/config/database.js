@@ -1,6 +1,15 @@
-const { DatabaseSync } = require('node:sqlite');
 const path = require('path');
 const bcrypt = require('bcryptjs');
+
+// Use Node's built-in SQLite (Node >= 22.5). On older Node, fall back to the
+// better-sqlite3 package — both expose the same `new X(path)`, `.exec()` and
+// `.prepare().get()/.all()/.run()` API used throughout this app.
+let SqliteDatabase;
+try {
+  SqliteDatabase = require('node:sqlite').DatabaseSync;
+} catch {
+  SqliteDatabase = require('better-sqlite3');
+}
 
 const dbPath = process.env.DB_PATH
   ? path.resolve(process.env.DB_PATH)
@@ -9,7 +18,7 @@ let db;
 
 function getDb() {
   if (!db) {
-    db = new DatabaseSync(dbPath);
+    db = new SqliteDatabase(dbPath);
     db.exec('PRAGMA journal_mode = WAL');
     db.exec('PRAGMA foreign_keys = ON');
   }
