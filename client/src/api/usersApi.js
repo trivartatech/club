@@ -1,0 +1,10 @@
+import api from './axiosInstance';
+export const getUsers = (params) => api.get('/users', { params });
+export const getUser = (id) => api.get(`/users/${id}`);
+export const createUser = (data) => api.post('/users', data);
+export const updateUser = (id, data) => api.put(`/users/${id}`, data);
+export const deactivateUser = (id) => api.delete(`/users/${id}`);
+export const resetPassword = (id, data) => api.post(`/users/${id}/reset-password`, data);
+export const getDuesOutstanding = (params) => api.get('/reports/dues-outstanding', { params });
+export const getLifetimeEligible = () => api.get('/reports/lifetime-eligible');
+export const getSummary = () => api.get('/reports/summary');

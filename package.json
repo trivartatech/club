@@ -1,0 +1,7 @@
+{
+  "name": "city-club",
+  "scripts": {
+    "dev": "cd client && npm run dev",
+    "dev:server": "cd server && npm run dev"
+  }
+}

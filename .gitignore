@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Secrets — never commit the real .env (use server/.env.example)
+.env
+server/.env
+
+# --- Member data & PII are intentionally NOT committed ---
+# The live SQLite DB (member PII + password hashes) and member photos stay on
+# the server / are delivered via the deployment bundle, never via git.
+server/database/*.db
+server/database/*.db-shm
+server/database/*.db-wal
+server/uploads/photos/*
+!server/uploads/photos/.gitkeep
+
+# Local build / test artifacts
+.deploytest/
+.deploybuild/
+build-deploy-zip.cjs
+*.log
+
+# Editor / tooling
+.claude/
+
+# Large unused legacy asset
+city club chitradurga logo.png
