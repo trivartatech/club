@@ -64,7 +64,7 @@ function CardFront({ member }) {
     <div
       id="id-card"
       className="relative rounded-xl overflow-hidden shadow-lg print:shadow-none bg-gray-100"
-      style={{ width: CARD_W, height: CARD_H, backgroundImage: 'url(/idcard-front.png)', backgroundSize: 'cover', backgroundPosition: 'center' }}
+      style={{ width: CARD_W, height: CARD_H, backgroundImage: 'url(/idcard-front.png?v=2)', backgroundSize: 'cover', backgroundPosition: 'center' }}
     >
       <PhotoBox src={member.photo_url} name={member.full_name} />
 
