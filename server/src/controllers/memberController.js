@@ -34,8 +34,8 @@ function auditLog(db, userId, action, targetId, details) {
   ).run(userId, action, targetId, JSON.stringify(details));
 }
 
-function nextMemberNumber(_req, res) {
-  return ok(res, { member_number: peekMemberNumber() });
+function nextMemberNumber(req, res) {
+  return ok(res, { member_number: peekMemberNumber({ name: req.query.name }) });
 }
 
 // SQL expression that strips common separators from a stored phone for comparison.
@@ -102,7 +102,7 @@ function bulkImport(req, res) {
         const clash = db.prepare('SELECT id FROM members WHERE member_number = ?').get(member_number);
         if (clash) throw new Error(`member_number "${member_number}" already exists`);
       } else {
-        member_number = type === 'Lifetime' ? generateLifetimeNumber() : generateMemberNumber();
+        member_number = type === 'Lifetime' ? generateLifetimeNumber({ name: full_name }) : generateMemberNumber({ name: full_name });
       }
 
       const join_date = clean(row.join_date) || new Date().toISOString().split('T')[0];
@@ -209,7 +209,7 @@ function createMember(req, res) {
     const clash = db.prepare('SELECT id FROM members WHERE member_number = ?').get(member_number);
     if (clash) return error(res, `Member number "${member_number}" is already in use`, 400, 'DUPLICATE');
   } else {
-    member_number = generateMemberNumber();
+    member_number = generateMemberNumber({ name: full_name });
   }
 
   const stmt = db.prepare(`
@@ -360,7 +360,7 @@ function upgradeToLifetime(req, res) {
   }
   const today = new Date().toISOString().split('T')[0];
   // Issue a new lifetime member number, preserving the previous one for records.
-  const lifetimeNumber = generateLifetimeNumber();
+  const lifetimeNumber = generateLifetimeNumber({ name: member.full_name });
   db.prepare(`
     UPDATE members SET membership_type = 'Lifetime', lifetime_since = ?,
     previous_member_number = member_number, member_number = ?,

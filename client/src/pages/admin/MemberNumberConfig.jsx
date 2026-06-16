@@ -5,16 +5,31 @@ import { buildMemberNumberPreview } from '../../utils/formatters';
 
 function FormatFields({ form, onChange, idPrefix }) {
   const set = (k) => (e) => onChange({ ...form, [k]: e.target.value });
+  const alpha = form.mode === 'alpha';
   return (
     <div className="grid grid-cols-2 gap-4">
+      <div className="col-span-2">
+        <label className="label">Numbering style</label>
+        <select className="input" value={form.mode || 'yearly'} onChange={set('mode')}>
+          <option value="yearly">Year + running number (e.g. CCM-2026-0001)</option>
+          <option value="alpha">By name initial (e.g. LM-CIC-S-61)</option>
+        </select>
+      </div>
       <div>
         <label className="label">Prefix</label>
-        <input className="input" value={form.prefix} onChange={set('prefix')} placeholder="e.g. CCM" maxLength={16} />
+        <input className="input" value={form.prefix} onChange={set('prefix')} placeholder="e.g. LM" maxLength={16} />
       </div>
-      <div>
-        <label className="label">Suffix</label>
-        <input className="input" value={form.suffix} onChange={set('suffix')} placeholder="optional" maxLength={16} />
-      </div>
+      {alpha ? (
+        <div>
+          <label className="label">Code (middle)</label>
+          <input className="input" value={form.code} onChange={set('code')} placeholder="e.g. CIC (optional)" maxLength={16} />
+        </div>
+      ) : (
+        <div>
+          <label className="label">Suffix</label>
+          <input className="input" value={form.suffix} onChange={set('suffix')} placeholder="optional" maxLength={16} />
+        </div>
+      )}
       <div>
         <label className="label">Separator</label>
         <input className="input" value={form.separator} onChange={set('separator')} placeholder="e.g. -" maxLength={4} />
@@ -23,20 +38,31 @@ function FormatFields({ form, onChange, idPrefix }) {
         <label className="label">Sequence Digits</label>
         <input type="number" min={1} max={12} className="input" value={form.padding} onChange={set('padding')} />
       </div>
-      <div className="col-span-2 flex items-center gap-2">
-        <input
-          id={`${idPrefix}_include_year`}
-          type="checkbox"
-          className="h-4 w-4 rounded border-gray-300"
-          checked={form.include_year}
-          onChange={e => onChange({ ...form, include_year: e.target.checked })}
-        />
-        <label htmlFor={`${idPrefix}_include_year`} className="text-sm text-gray-700">Include current year</label>
-      </div>
-      <div className="col-span-2">
-        <label className="label">Next Sequence Number</label>
-        <input type="number" min={1} className="input" value={form.next_seq} onChange={set('next_seq')} />
-      </div>
+
+      {!alpha && (
+        <div className="col-span-2 flex items-center gap-2">
+          <input
+            id={`${idPrefix}_include_year`}
+            type="checkbox"
+            className="h-4 w-4 rounded border-gray-300"
+            checked={form.include_year}
+            onChange={e => onChange({ ...form, include_year: e.target.checked })}
+          />
+          <label htmlFor={`${idPrefix}_include_year`} className="text-sm text-gray-700">Include current year</label>
+        </div>
+      )}
+
+      {alpha ? (
+        <p className="col-span-2 text-xs text-gray-500">
+          Format: <span className="font-mono">{[form.prefix, form.code, '〈initial〉', '〈n〉'].filter(Boolean).join(form.separator || '-')}</span>.
+          The number after the name initial counts up <strong>per letter</strong> automatically — e.g. the 61st “S” member becomes <span className="font-mono">…-S-61</span>.
+        </p>
+      ) : (
+        <div className="col-span-2">
+          <label className="label">Next Sequence Number</label>
+          <input type="number" min={1} className="input" value={form.next_seq} onChange={set('next_seq')} />
+        </div>
+      )}
     </div>
   );
 }
@@ -61,8 +87,8 @@ export default function MemberNumberConfig() {
   useEffect(() => {
     getMemberNumberConfig().then(r => {
       const d = r.data.data;
-      setGeneral({ prefix: d.prefix ?? 'CCM', separator: d.separator ?? '-', include_year: !!d.include_year, padding: d.padding ?? 4, suffix: d.suffix ?? '', next_seq: d.next_seq ?? 1 });
-      setLifetime({ prefix: d.lt_prefix ?? 'CCL', separator: d.lt_separator ?? '-', include_year: !!d.lt_include_year, padding: d.lt_padding ?? 4, suffix: d.lt_suffix ?? '', next_seq: d.lt_next_seq ?? 1 });
+      setGeneral({ prefix: d.prefix ?? 'CCM', code: d.code ?? '', separator: d.separator ?? '-', include_year: !!d.include_year, padding: d.padding ?? 4, suffix: d.suffix ?? '', next_seq: d.next_seq ?? 1, mode: d.mode || 'yearly' });
+      setLifetime({ prefix: d.lt_prefix ?? 'CCL', code: d.lt_code ?? '', separator: d.lt_separator ?? '-', include_year: !!d.lt_include_year, padding: d.lt_padding ?? 4, suffix: d.lt_suffix ?? '', next_seq: d.lt_next_seq ?? 1, mode: d.lt_mode || 'yearly' });
       setServerPreviews({ general: d.preview, lifetime: d.lifetime_preview });
     }).catch(() => addToast('Failed to load configuration', 'error'));
   }, []);
@@ -72,10 +98,10 @@ export default function MemberNumberConfig() {
     setSaving(true);
     try {
       const res = await updateMemberNumberConfig({
-        prefix: general.prefix, separator: general.separator, include_year: general.include_year,
-        padding: Number(general.padding), suffix: general.suffix, next_seq: Number(general.next_seq),
-        lt_prefix: lifetime.prefix, lt_separator: lifetime.separator, lt_include_year: lifetime.include_year,
-        lt_padding: Number(lifetime.padding), lt_suffix: lifetime.suffix, lt_next_seq: Number(lifetime.next_seq),
+        prefix: general.prefix, code: general.code, separator: general.separator, include_year: general.include_year,
+        padding: Number(general.padding), suffix: general.suffix, next_seq: Number(general.next_seq), mode: general.mode,
+        lt_prefix: lifetime.prefix, lt_code: lifetime.code, lt_separator: lifetime.separator, lt_include_year: lifetime.include_year,
+        lt_padding: Number(lifetime.padding), lt_suffix: lifetime.suffix, lt_next_seq: Number(lifetime.next_seq), lt_mode: lifetime.mode,
       });
       const d = res.data.data;
       setServerPreviews({ general: d.preview, lifetime: d.lifetime_preview });
@@ -89,8 +115,8 @@ export default function MemberNumberConfig() {
 
   if (!general || !lifetime) return <div className="text-gray-400">Loading...</div>;
 
-  const genLive = buildMemberNumberPreview(general, Number(general.next_seq) || 1);
-  const ltLive = buildMemberNumberPreview(lifetime, Number(lifetime.next_seq) || 1);
+  const genLive = buildMemberNumberPreview(general, general.mode === 'alpha' ? 1 : (Number(general.next_seq) || 1));
+  const ltLive = buildMemberNumberPreview(lifetime, lifetime.mode === 'alpha' ? 1 : (Number(lifetime.next_seq) || 1));
 
   return (
     <form onSubmit={handleSubmit} className="max-w-lg mx-auto space-y-4">
@@ -103,7 +129,7 @@ export default function MemberNumberConfig() {
         <Preview
           label="Next number preview"
           value={genLive}
-          note={serverPreviews.general && serverPreviews.general !== genLive ? `Currently assigning: ${serverPreviews.general} (saved format)` : null}
+          note={serverPreviews.general && serverPreviews.general !== genLive ? `Next “A” member would be ${serverPreviews.general} (saved format)` : null}
         />
         <FormatFields form={general} onChange={setGeneral} idPrefix="gen" />
       </div>
@@ -119,7 +145,7 @@ export default function MemberNumberConfig() {
         <Preview
           label="Next lifetime number preview"
           value={ltLive}
-          note={serverPreviews.lifetime && serverPreviews.lifetime !== ltLive ? `Currently assigning: ${serverPreviews.lifetime} (saved format)` : null}
+          note={serverPreviews.lifetime && serverPreviews.lifetime !== ltLive ? `Next “A” member would be ${serverPreviews.lifetime} (saved format)` : null}
         />
         <FormatFields form={lifetime} onChange={setLifetime} idPrefix="lt" />
       </div>

@@ -2,8 +2,8 @@ const { getDb } = require('../config/database');
 
 // Maps a "scope" to the config columns that define its format.
 const SCOPES = {
-  general: { prefix: 'prefix', separator: 'separator', include_year: 'include_year', padding: 'padding', suffix: 'suffix', seq: 'next_seq' },
-  lifetime: { prefix: 'lt_prefix', separator: 'lt_separator', include_year: 'lt_include_year', padding: 'lt_padding', suffix: 'lt_suffix', seq: 'lt_next_seq' },
+  general: { prefix: 'prefix', code: 'code', separator: 'separator', include_year: 'include_year', padding: 'padding', suffix: 'suffix', seq: 'next_seq', mode: 'mode' },
+  lifetime: { prefix: 'lt_prefix', code: 'lt_code', separator: 'lt_separator', include_year: 'lt_include_year', padding: 'lt_padding', suffix: 'lt_suffix', seq: 'lt_next_seq', mode: 'lt_mode' },
 };
 
 function getConfigRow(db) {
@@ -15,21 +15,31 @@ function fieldsFor(cfg, scope) {
   const m = SCOPES[scope] || SCOPES.general;
   return {
     prefix: cfg[m.prefix],
+    code: cfg[m.code],
     separator: cfg[m.separator],
     include_year: cfg[m.include_year],
     padding: cfg[m.padding],
     suffix: cfg[m.suffix],
     next_seq: cfg[m.seq],
+    mode: cfg[m.mode] || 'yearly',
     seqColumn: m.seq,
     id: cfg.id,
   };
 }
 
-/**
- * Build a member number string. Empty parts (prefix/suffix) are skipped and the
- * separator only joins the parts that are actually present.
- */
-function buildMemberNumber(f, seq, year) {
+function numberExists(db, num) {
+  return !!db.prepare('SELECT 1 FROM members WHERE member_number = ?').get(num);
+}
+
+// Normalize an options arg that may be a year (legacy) or an object.
+function opts(o) {
+  if (o == null) return {};
+  if (typeof o === 'object') return o;
+  return { year: o };
+}
+
+// ---------- yearly mode: prefix [- year] - seq [- suffix] ----------
+function buildYearly(f, seq, year) {
   const parts = [];
   if (f.prefix) parts.push(f.prefix);
   if (f.include_year) parts.push(String(year));
@@ -38,43 +48,83 @@ function buildMemberNumber(f, seq, year) {
   return parts.join(f.separator || '');
 }
 
-function numberExists(db, num) {
-  return !!db.prepare('SELECT 1 FROM members WHERE member_number = ?').get(num);
+// ---------- alpha mode: prefix [- code] - INITIAL - perLetterSeq ----------
+function nameInitial(name) {
+  const m = String(name || '').toUpperCase().match(/[A-Z]/);
+  return m ? m[0] : 'X';
 }
 
-// Find the first free sequence/number for a scope, starting at its next_seq.
-function resolve(db, scope, year) {
-  const cfg = getConfigRow(db);
-  const f = fieldsFor(cfg, scope);
+function alphaBase(f, initial) {
+  const parts = [];
+  if (f.prefix) parts.push(f.prefix);
+  if (f.code) parts.push(f.code);
+  parts.push(initial);
+  return parts.join(f.separator || '') + (f.separator || '');
+}
+
+function buildAlpha(f, initial, seq) {
+  const base = alphaBase(f, initial) + String(seq).padStart(Math.max(1, f.padding || 1), '0');
+  return f.suffix ? base + (f.separator || '') + f.suffix : base;
+}
+
+// Highest existing sequence for this prefix/code/initial, so numbering continues
+// per letter (e.g. LM-CIC-S-60 exists -> next is 61).
+function nextAlphaSeq(db, f, initial) {
+  const base = alphaBase(f, initial);
+  const rows = db.prepare('SELECT member_number FROM members WHERE member_number LIKE ?').all(`${base}%`);
+  let max = 0;
+  for (const r of rows) {
+    const n = parseInt(String(r.member_number).slice(base.length), 10);
+    if (Number.isFinite(n) && n > max) max = n;
+  }
+  return max + 1;
+}
+
+function resolveAlpha(db, f, name) {
+  const initial = nameInitial(name);
+  let seq = nextAlphaSeq(db, f, initial);
+  let num = buildAlpha(f, initial, seq);
+  while (numberExists(db, num)) { seq += 1; num = buildAlpha(f, initial, seq); }
+  return num;
+}
+
+function resolveYearly(db, f, year) {
   const y = year || new Date().getFullYear();
   let seq = f.next_seq || 1;
-  let num = buildMemberNumber(f, seq, y);
-  while (numberExists(db, num)) { seq += 1; num = buildMemberNumber(f, seq, y); }
-  return { f, seq, num };
+  let num = buildYearly(f, seq, y);
+  while (numberExists(db, num)) { seq += 1; num = buildYearly(f, seq, y); }
+  return { seq, num };
 }
 
 /** Next auto number for a scope, WITHOUT consuming the sequence. */
-function peekNumber(scope, year) {
-  return resolve(getDb(), scope, year).num;
+function peekNumber(scope, o) {
+  const { name, year } = opts(o);
+  const db = getDb();
+  const f = fieldsFor(getConfigRow(db), scope);
+  if (f.mode === 'alpha') return resolveAlpha(db, f, name || 'A');
+  return resolveYearly(db, f, year).num;
 }
 
-/** Assign the next number for a scope AND advance its stored counter. */
-function generateNumber(scope, year) {
+/** Assign the next number for a scope (advances the counter only in yearly mode). */
+function generateNumber(scope, o) {
+  const { name, year } = opts(o);
   const db = getDb();
-  const { f, seq, num } = resolve(db, scope, year);
+  const f = fieldsFor(getConfigRow(db), scope);
+  if (f.mode === 'alpha') return resolveAlpha(db, f, name);
+  const { seq, num } = resolveYearly(db, f, year);
   db.prepare(`UPDATE member_number_config SET ${f.seqColumn} = ?, updated_at = datetime('now') WHERE id = ?`)
     .run(seq + 1, f.id);
   return num;
 }
 
-// Backwards-compatible helpers (general scope) + scoped variants.
-const generateMemberNumber = (year) => generateNumber('general', year);
-const peekMemberNumber = (year) => peekNumber('general', year);
-const generateLifetimeNumber = (year) => generateNumber('lifetime', year);
-const peekLifetimeNumber = (year) => peekNumber('lifetime', year);
+// Scoped helpers — accept { name, year } (or a bare year for legacy callers).
+const generateMemberNumber = (o) => generateNumber('general', o);
+const peekMemberNumber = (o) => peekNumber('general', o);
+const generateLifetimeNumber = (o) => generateNumber('lifetime', o);
+const peekLifetimeNumber = (o) => peekNumber('lifetime', o);
 
 module.exports = {
   generateMemberNumber, peekMemberNumber,
   generateLifetimeNumber, peekLifetimeNumber,
-  generateNumber, peekNumber, buildMemberNumber, fieldsFor,
+  generateNumber, peekNumber, fieldsFor, nameInitial,
 };

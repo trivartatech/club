@@ -111,7 +111,7 @@ function recordPayment(req, res) {
   if (payment_type === 'lifetime_transfer' && member.membership_type === 'General') {
     const upgDate = payment_date || today;
     // Issue a new lifetime member number, preserving the previous one.
-    const lifetimeNumber = generateLifetimeNumber();
+    const lifetimeNumber = generateLifetimeNumber({ name: member.full_name });
     db.prepare(`
       UPDATE members SET membership_type = 'Lifetime', lifetime_since = ?,
       previous_member_number = member_number, member_number = ?,

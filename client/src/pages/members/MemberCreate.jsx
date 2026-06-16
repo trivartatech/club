@@ -25,16 +25,22 @@ export default function MemberCreate() {
   const [suggestedNumber, setSuggestedNumber] = useState('');
   const photoRef = useRef();
 
-  // Pre-fill the suggested next member number (editable).
+  // Pre-fill the suggested next member number (editable). For name-initial
+  // numbering the suggestion depends on the typed name, so re-fetch (debounced)
+  // as the name changes — but only overwrite the field while it still matches
+  // the last suggestion (i.e. the admin hasn't typed a custom number).
   useEffect(() => {
-    getNextMemberNumber()
-      .then(r => {
-        const sug = r.data.data.member_number;
-        setSuggestedNumber(sug);
-        setValues(v => (v.member_number ? v : { ...v, member_number: sug }));
-      })
-      .catch(() => {});
-  }, []);
+    const t = setTimeout(() => {
+      getNextMemberNumber(values.full_name)
+        .then(r => {
+          const sug = r.data.data.member_number;
+          setValues(v => (!v.member_number || v.member_number === suggestedNumber ? { ...v, member_number: sug } : v));
+          setSuggestedNumber(sug);
+        })
+        .catch(() => {});
+    }, 350);
+    return () => clearTimeout(t);
+  }, [values.full_name]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handlePhotoSelect(e) {
     const file = e.target.files?.[0];

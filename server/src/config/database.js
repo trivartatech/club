@@ -91,12 +91,16 @@ function initDb() {
       padding INTEGER NOT NULL DEFAULT 4,
       suffix TEXT NOT NULL DEFAULT '',
       next_seq INTEGER NOT NULL DEFAULT 1,
+      mode TEXT NOT NULL DEFAULT 'yearly',
+      code TEXT NOT NULL DEFAULT '',
       lt_prefix TEXT NOT NULL DEFAULT 'CCL',
       lt_separator TEXT NOT NULL DEFAULT '-',
       lt_include_year INTEGER NOT NULL DEFAULT 1,
       lt_padding INTEGER NOT NULL DEFAULT 4,
       lt_suffix TEXT NOT NULL DEFAULT '',
       lt_next_seq INTEGER NOT NULL DEFAULT 1,
+      lt_mode TEXT NOT NULL DEFAULT 'yearly',
+      lt_code TEXT NOT NULL DEFAULT '',
       updated_by INTEGER REFERENCES users(id),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -154,6 +158,10 @@ function initDb() {
     ['lt_padding', 'INTEGER NOT NULL DEFAULT 4'],
     ['lt_suffix', "TEXT NOT NULL DEFAULT ''"],
     ['lt_next_seq', 'INTEGER NOT NULL DEFAULT 1'],
+    ['mode', "TEXT NOT NULL DEFAULT 'yearly'"],
+    ['code', "TEXT NOT NULL DEFAULT ''"],
+    ['lt_mode', "TEXT NOT NULL DEFAULT 'yearly'"],
+    ['lt_code', "TEXT NOT NULL DEFAULT ''"],
   ];
   for (const [name, def] of ltColumns) {
     if (!mncCols.includes(name)) {
