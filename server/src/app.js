@@ -7,6 +7,10 @@ const rateLimit = require('express-rate-limit');
 
 const app = express();
 
+// Behind CloudPanel's nginx reverse proxy — trust the first hop so req.ip and
+// the rate limiter read the real client IP (fixes ERR_ERL_UNEXPECTED_X_FORWARDED_FOR).
+app.set('trust proxy', 1);
+
 // Security — allow blob:/data: images (photo cropper), inline styles, and Google Fonts.
 app.use(helmet({
   contentSecurityPolicy: {
