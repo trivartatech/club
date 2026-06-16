@@ -262,8 +262,20 @@ function updateMember(req, res) {
   // Members can only update their own contact/profile fields, not status
   const isAdminOrStaff = ['admin', 'staff'].includes(req.user.role);
 
+  // Member number — editable by admin/staff only, must stay unique.
+  let member_number = existing.member_number;
+  if (isAdminOrStaff && req.body.member_number != null) {
+    const mn = String(req.body.member_number).trim();
+    if (mn && mn !== existing.member_number) {
+      const clash = db.prepare('SELECT id, full_name FROM members WHERE member_number = ? AND id != ?').get(mn, id);
+      if (clash) return error(res, `Member number "${mn}" is already used by ${clash.full_name}`, 400, 'DUPLICATE');
+      member_number = mn;
+    }
+  }
+
   db.prepare(`
     UPDATE members SET
+      member_number = ?,
       full_name = ?, gender = ?, date_of_birth = ?,
       house_no = ?, street = ?, city = ?, pin_code = ?,
       phone = ?, phone_secondary = ?, email = ?,
@@ -273,6 +285,7 @@ function updateMember(req, res) {
       updated_by = ?, updated_at = datetime('now')
     WHERE id = ?
   `).run(
+    member_number,
     full_name ?? existing.full_name,
     gender ?? existing.gender,
     date_of_birth ?? existing.date_of_birth,
@@ -289,6 +302,12 @@ function updateMember(req, res) {
     (isAdminOrStaff && status) ? status : existing.status,
     req.user.id, id
   );
+
+  // If the member number changed and the login used it as the username, keep them in sync.
+  if (member_number !== existing.member_number) {
+    db.prepare("UPDATE users SET username = ? WHERE member_id = ? AND role = 'member' AND username = ?")
+      .run(member_number, id, existing.member_number);
+  }
 
   const updated = db.prepare('SELECT * FROM members WHERE id = ?').get(id);
   auditLog(db, req.user.id, 'UPDATE_MEMBER', id, req.body);

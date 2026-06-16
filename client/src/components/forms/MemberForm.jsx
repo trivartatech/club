@@ -107,18 +107,20 @@ export default function MemberForm({ values, onChange, isEdit = false, isAdminOr
         <div>
           <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">Membership</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {!isEdit && (
-              <div className="sm:col-span-2">
-                <label className="label">Member Number</label>
-                <input
-                  className="input font-mono"
-                  value={values.member_number || ''}
-                  onChange={set('member_number')}
-                  placeholder="Auto-generated if left blank"
-                />
-                <p className="text-xs text-gray-400 mt-1">Suggested automatically — edit if you need a custom number. Must be unique.</p>
-              </div>
-            )}
+            <div className="sm:col-span-2">
+              <label className="label">Member Number</label>
+              <input
+                className="input font-mono"
+                value={values.member_number || ''}
+                onChange={set('member_number')}
+                placeholder={isEdit ? 'Member number' : 'Auto-generated if left blank'}
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                {isEdit
+                  ? 'Must be unique. Changing it updates the ID card, receipts and login.'
+                  : 'Suggested automatically — edit if you need a custom number. Must be unique.'}
+              </p>
+            </div>
             <div>
               <label className="label">Join Date</label>
               <input type="date" className="input" value={values.join_date || ''} onChange={set('join_date')} />
