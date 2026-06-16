@@ -248,6 +248,7 @@ function updateMember(req, res) {
   const {
     full_name, gender, date_of_birth, house_no, street, city, pin_code,
     phone, phone_secondary, email, emergency_contact_name, emergency_contact_phone, notes, status,
+    join_date, general_since, lifetime_since,
   } = req.body;
 
   // Phone must stay unique — but only enforce when it actually changes, so
@@ -282,6 +283,7 @@ function updateMember(req, res) {
       emergency_contact_name = ?, emergency_contact_phone = ?,
       notes = ?,
       status = ?,
+      join_date = ?, general_since = ?, lifetime_since = ?,
       updated_by = ?, updated_at = datetime('now')
     WHERE id = ?
   `).run(
@@ -300,6 +302,11 @@ function updateMember(req, res) {
     emergency_contact_phone ?? existing.emergency_contact_phone,
     notes ?? existing.notes,
     (isAdminOrStaff && status) ? status : existing.status,
+    // Membership dates — admin/staff only. join_date is required (can't clear);
+    // general_since / lifetime_since may be cleared (empty -> null).
+    (isAdminOrStaff && join_date) ? join_date : existing.join_date,
+    isAdminOrStaff ? (general_since || null) : existing.general_since,
+    isAdminOrStaff ? (lifetime_since || null) : existing.lifetime_since,
     req.user.id, id
   );
 

@@ -133,6 +133,18 @@ export default function MemberForm({ values, onChange, isEdit = false, isAdminOr
                 </select>
               </div>
             )}
+            {isEdit && (
+              <div>
+                <label className="label">General Since</label>
+                <input type="date" className="input" value={values.general_since || ''} onChange={set('general_since')} />
+              </div>
+            )}
+            {isEdit && (
+              <div>
+                <label className="label">Lifetime Since</label>
+                <input type="date" className="input" value={values.lifetime_since || ''} onChange={set('lifetime_since')} />
+              </div>
+            )}
           </div>
         </div>
       )}
