@@ -80,6 +80,16 @@ function nextAlphaSeq(db, f, initial) {
   return max + 1;
 }
 
+// Next sequence for every letter A–Z (1 = no members yet for that letter).
+function alphaSequences(db, f) {
+  const out = {};
+  for (let i = 0; i < 26; i++) {
+    const L = String.fromCharCode(65 + i);
+    out[L] = nextAlphaSeq(db, f, L);
+  }
+  return out;
+}
+
 function resolveAlpha(db, f, name) {
   const initial = nameInitial(name);
   let seq = nextAlphaSeq(db, f, initial);
@@ -126,5 +136,5 @@ const peekLifetimeNumber = (o) => peekNumber('lifetime', o);
 module.exports = {
   generateMemberNumber, peekMemberNumber,
   generateLifetimeNumber, peekLifetimeNumber,
-  generateNumber, peekNumber, fieldsFor, nameInitial,
+  generateNumber, peekNumber, fieldsFor, nameInitial, alphaSequences,
 };

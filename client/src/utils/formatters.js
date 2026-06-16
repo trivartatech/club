@@ -20,14 +20,14 @@ export function currentMonth() {
 }
 
 // Build a member-number preview from a format config (mirrors the server logic).
-export function buildMemberNumberPreview(cfg, seq, year = new Date().getFullYear()) {
+export function buildMemberNumberPreview(cfg, seq, year = new Date().getFullYear(), initial = 'A') {
   const sep = cfg.separator || '';
   const pad = String(seq).padStart(Math.max(1, Number(cfg.padding) || 1), '0');
   if (cfg.mode === 'alpha') {
     const parts = [];
     if (cfg.prefix) parts.push(cfg.prefix);
     if (cfg.code) parts.push(cfg.code);
-    parts.push('A'); // sample name initial
+    parts.push(initial); // name initial
     parts.push(pad);
     let s = parts.join(sep);
     if (cfg.suffix) s += sep + cfg.suffix;

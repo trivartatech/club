@@ -1,9 +1,18 @@
 const { getDb } = require('../config/database');
 const { ok, error } = require('../utils/apiResponse');
-const { peekMemberNumber, peekLifetimeNumber } = require('../utils/generateMemberNumber');
+const { peekMemberNumber, peekLifetimeNumber, fieldsFor, alphaSequences } = require('../utils/generateMemberNumber');
 
 function withPreviews(config) {
-  return { ...config, preview: peekMemberNumber(), lifetime_preview: peekLifetimeNumber() };
+  const db = getDb();
+  const general = fieldsFor(config, 'general');
+  const lifetime = fieldsFor(config, 'lifetime');
+  return {
+    ...config,
+    preview: peekMemberNumber(),
+    lifetime_preview: peekLifetimeNumber(),
+    alpha_sequences: general.mode === 'alpha' ? alphaSequences(db, general) : null,
+    lt_alpha_sequences: lifetime.mode === 'alpha' ? alphaSequences(db, lifetime) : null,
+  };
 }
 
 function getConfig(req, res) {

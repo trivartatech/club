@@ -67,6 +67,38 @@ function FormatFields({ form, onChange, idPrefix }) {
   );
 }
 
+// Grid of the next number for every letter A–Z (alpha mode only).
+function AlphaSequenceGrid({ form, sequences }) {
+  const [showAll, setShowAll] = useState(false);
+  if (!sequences) return null;
+  const letters = Object.keys(sequences).sort();
+  const active = letters.filter(L => sequences[L] > 1);
+  const shown = showAll ? letters : active;
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <h4 className="text-sm font-semibold text-gray-700">Next number per letter</h4>
+        <button type="button" onClick={() => setShowAll(s => !s)} className="text-xs text-primary-700 underline">
+          {showAll ? 'Show only letters in use' : 'Show all A–Z'}
+        </button>
+      </div>
+      {shown.length === 0 ? (
+        <p className="text-xs text-gray-400">No members yet — every letter starts at {form.padding > 1 ? String(1).padStart(Number(form.padding), '0') : 1}.</p>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+          {shown.map(L => (
+            <div key={L} className={`flex items-center justify-between rounded px-2 py-1 text-xs font-mono ${sequences[L] > 1 ? 'bg-primary-50 text-primary-900' : 'bg-gray-50 text-gray-400'}`}>
+              <span className="font-sans font-semibold">{L}</span>
+              <span>{buildMemberNumberPreview(form, sequences[L], undefined, L)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      <p className="text-xs text-gray-400 mt-2">Highlighted letters already have members; the value is the next number that letter will get. Save to refresh after editing.</p>
+    </div>
+  );
+}
+
 function Preview({ label, value, note }) {
   return (
     <div className="bg-primary-50 border border-primary-100 rounded-lg p-4 text-center">
@@ -89,7 +121,7 @@ export default function MemberNumberConfig() {
       const d = r.data.data;
       setGeneral({ prefix: d.prefix ?? 'CCM', code: d.code ?? '', separator: d.separator ?? '-', include_year: !!d.include_year, padding: d.padding ?? 4, suffix: d.suffix ?? '', next_seq: d.next_seq ?? 1, mode: d.mode || 'yearly' });
       setLifetime({ prefix: d.lt_prefix ?? 'CCL', code: d.lt_code ?? '', separator: d.lt_separator ?? '-', include_year: !!d.lt_include_year, padding: d.lt_padding ?? 4, suffix: d.lt_suffix ?? '', next_seq: d.lt_next_seq ?? 1, mode: d.lt_mode || 'yearly' });
-      setServerPreviews({ general: d.preview, lifetime: d.lifetime_preview });
+      setServerPreviews({ general: d.preview, lifetime: d.lifetime_preview, genSeqs: d.alpha_sequences, ltSeqs: d.lt_alpha_sequences });
     }).catch(() => addToast('Failed to load configuration', 'error'));
   }, []);
 
@@ -104,7 +136,7 @@ export default function MemberNumberConfig() {
         lt_padding: Number(lifetime.padding), lt_suffix: lifetime.suffix, lt_next_seq: Number(lifetime.next_seq), lt_mode: lifetime.mode,
       });
       const d = res.data.data;
-      setServerPreviews({ general: d.preview, lifetime: d.lifetime_preview });
+      setServerPreviews({ general: d.preview, lifetime: d.lifetime_preview, genSeqs: d.alpha_sequences, ltSeqs: d.lt_alpha_sequences });
       addToast('Member number format updated');
     } catch (err) {
       addToast(err.response?.data?.message || 'Failed to save', 'error');
@@ -138,6 +170,7 @@ export default function MemberNumberConfig() {
           note={general.mode === 'alpha' ? 'Shown for sample letter “A” — each letter has its own counter. Save to refresh.' : null}
         />
         <FormatFields form={general} onChange={setGeneral} idPrefix="gen" />
+        {general.mode === 'alpha' && <AlphaSequenceGrid form={general} sequences={serverPreviews.genSeqs} />}
       </div>
 
       {/* Lifetime members */}
@@ -154,6 +187,7 @@ export default function MemberNumberConfig() {
           note={lifetime.mode === 'alpha' ? 'Shown for sample letter “A” — each letter has its own counter. Save to refresh.' : null}
         />
         <FormatFields form={lifetime} onChange={setLifetime} idPrefix="lt" />
+        {lifetime.mode === 'alpha' && <AlphaSequenceGrid form={lifetime} sequences={serverPreviews.ltSeqs} />}
       </div>
 
       <button type="submit" disabled={saving} className="btn-primary w-full">
