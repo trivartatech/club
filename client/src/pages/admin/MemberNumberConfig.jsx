@@ -115,8 +115,14 @@ export default function MemberNumberConfig() {
 
   if (!general || !lifetime) return <div className="text-gray-400">Loading...</div>;
 
-  const genLive = buildMemberNumberPreview(general, general.mode === 'alpha' ? 1 : (Number(general.next_seq) || 1));
-  const ltLive = buildMemberNumberPreview(lifetime, lifetime.mode === 'alpha' ? 1 : (Number(lifetime.next_seq) || 1));
+  // For name-initial mode, take the real "next sequence" from the server preview
+  // (computed against existing data for the sample letter "A") so the live preview
+  // shows the actual next digit, e.g. LM-CIC-A-0011 instead of a static -0001.
+  const alphaNext = (sp) => { const m = String(sp || '').match(/(\d+)\s*$/); return m ? parseInt(m[1], 10) : 1; };
+  const genSeq = general.mode === 'alpha' ? alphaNext(serverPreviews.general) : (Number(general.next_seq) || 1);
+  const ltSeq = lifetime.mode === 'alpha' ? alphaNext(serverPreviews.lifetime) : (Number(lifetime.next_seq) || 1);
+  const genLive = buildMemberNumberPreview(general, genSeq);
+  const ltLive = buildMemberNumberPreview(lifetime, ltSeq);
 
   return (
     <form onSubmit={handleSubmit} className="max-w-lg mx-auto space-y-4">
@@ -129,7 +135,7 @@ export default function MemberNumberConfig() {
         <Preview
           label="Next number preview"
           value={genLive}
-          note={serverPreviews.general && serverPreviews.general !== genLive ? `Next “A” member would be ${serverPreviews.general} (saved format)` : null}
+          note={general.mode === 'alpha' ? 'Shown for sample letter “A” — each letter has its own counter. Save to refresh.' : null}
         />
         <FormatFields form={general} onChange={setGeneral} idPrefix="gen" />
       </div>
@@ -145,7 +151,7 @@ export default function MemberNumberConfig() {
         <Preview
           label="Next lifetime number preview"
           value={ltLive}
-          note={serverPreviews.lifetime && serverPreviews.lifetime !== ltLive ? `Next “A” member would be ${serverPreviews.lifetime} (saved format)` : null}
+          note={lifetime.mode === 'alpha' ? 'Shown for sample letter “A” — each letter has its own counter. Save to refresh.' : null}
         />
         <FormatFields form={lifetime} onChange={setLifetime} idPrefix="lt" />
       </div>
