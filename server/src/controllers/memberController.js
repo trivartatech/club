@@ -3,7 +3,7 @@ const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const { getDb } = require('../config/database');
 const { ok, created, paginated, error } = require('../utils/apiResponse');
-const { generateMemberNumber, peekMemberNumber, generateLifetimeNumber } = require('../utils/generateMemberNumber');
+const { generateMemberNumber, peekMemberNumber, generateLifetimeNumber, peekLifetimeNumber } = require('../utils/generateMemberNumber');
 
 // Default member login password ("password"), hashed once and reused.
 const DEFAULT_MEMBER_PASSWORD_HASH = bcrypt.hashSync('password', 10);
@@ -35,7 +35,11 @@ function auditLog(db, userId, action, targetId, details) {
 }
 
 function nextMemberNumber(req, res) {
-  return ok(res, { member_number: peekMemberNumber({ name: req.query.name }) });
+  const { name, type } = req.query;
+  const num = type === 'Lifetime'
+    ? peekLifetimeNumber({ name })
+    : peekMemberNumber({ name });
+  return ok(res, { member_number: num });
 }
 
 // SQL expression that strips common separators from a stored phone for comparison.
@@ -193,6 +197,10 @@ function createMember(req, res) {
     return error(res, 'full_name is required', 400, 'VALIDATION_ERROR');
   }
 
+  // Membership type chosen on the add form (defaults to New).
+  const validTypes = ['New', 'General', 'Lifetime'];
+  const membership_type = validTypes.includes(req.body.membership_type) ? req.body.membership_type : 'New';
+
   const db = getDb();
 
   // Phone must be unique across members.
@@ -209,24 +217,35 @@ function createMember(req, res) {
     const clash = db.prepare('SELECT id FROM members WHERE member_number = ?').get(member_number);
     if (clash) return error(res, `Member number "${member_number}" is already in use`, 400, 'DUPLICATE');
   } else {
-    member_number = generateMemberNumber({ name: full_name });
+    member_number = membership_type === 'Lifetime'
+      ? generateLifetimeNumber({ name: full_name })
+      : generateMemberNumber({ name: full_name });
   }
+
+  // Membership dates follow the chosen type (each defaults to the join date).
+  const jd = join_date || new Date().toISOString().split('T')[0];
+  const general_since = membership_type === 'General'
+    ? (req.body.general_since || jd)
+    : (req.body.general_since || null);
+  const lifetime_since = membership_type === 'Lifetime'
+    ? (req.body.lifetime_since || jd)
+    : (req.body.lifetime_since || null);
 
   const stmt = db.prepare(`
     INSERT INTO members (
       member_number, full_name, gender, date_of_birth,
       house_no, street, city, pin_code, phone, phone_secondary, email,
-      membership_type, join_date, status,
+      membership_type, join_date, general_since, lifetime_since, status,
       emergency_contact_name, emergency_contact_phone, notes,
       created_by, updated_by
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'New', ?, 'Active', ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active', ?, ?, ?, ?, ?)
   `);
 
   const result = stmt.run(
     member_number, full_name.trim(), gender || null, date_of_birth || null,
     house_no || null, street || null, city || 'Chitradurga', pin_code || '577501',
     phone || null, phone_secondary || null, email || null,
-    join_date || new Date().toISOString().split('T')[0],
+    membership_type, jd, general_since, lifetime_since,
     emergency_contact_name || null, emergency_contact_phone || null,
     notes || null, req.user.id, req.user.id
   );

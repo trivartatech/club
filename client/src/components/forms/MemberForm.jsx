@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { STATUSES, GENDERS } from '../../utils/formatters';
+import { STATUSES, GENDERS, MEMBERSHIP_TYPES } from '../../utils/formatters';
 import { checkPhone } from '../../api/membersApi';
 
 export default function MemberForm({ values, onChange, isEdit = false, isAdminOrStaff = true, memberId, originalPhone, onPhoneTaken }) {
@@ -107,6 +107,17 @@ export default function MemberForm({ values, onChange, isEdit = false, isAdminOr
         <div>
           <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">Membership</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {!isEdit && (
+              <div className="sm:col-span-2">
+                <label className="label">Membership Type</label>
+                <select className="input" value={values.membership_type || 'New'} onChange={set('membership_type')}>
+                  {MEMBERSHIP_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+                <p className="text-xs text-gray-400 mt-1">
+                  Sets the number series automatically — General/New get a <span className="font-mono">GM-CIC</span> number, Lifetime gets <span className="font-mono">LM-CIC</span>.
+                </p>
+              </div>
+            )}
             <div className="sm:col-span-2">
               <label className="label">Member Number</label>
               <input

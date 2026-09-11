@@ -10,6 +10,7 @@ const defaults = {
   member_number: '', full_name: '', gender: '', date_of_birth: '', phone: '', phone_secondary: '', email: '',
   house_no: '', street: '', city: 'Chitradurga', pin_code: '577501',
   emergency_contact_name: '', emergency_contact_phone: '', notes: '',
+  membership_type: 'New',
   join_date: new Date().toISOString().split('T')[0],
 };
 
@@ -31,7 +32,7 @@ export default function MemberCreate() {
   // the last suggestion (i.e. the admin hasn't typed a custom number).
   useEffect(() => {
     const t = setTimeout(() => {
-      getNextMemberNumber(values.full_name)
+      getNextMemberNumber(values.full_name, values.membership_type)
         .then(r => {
           const sug = r.data.data.member_number;
           setValues(v => (!v.member_number || v.member_number === suggestedNumber ? { ...v, member_number: sug } : v));
@@ -40,7 +41,7 @@ export default function MemberCreate() {
         .catch(() => {});
     }, 350);
     return () => clearTimeout(t);
-  }, [values.full_name]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [values.full_name, values.membership_type]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handlePhotoSelect(e) {
     const file = e.target.files?.[0];

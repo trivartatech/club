@@ -1,7 +1,7 @@
 import api from './axiosInstance';
 export const getMembers = (params) => api.get('/members', { params });
-export const getNextMemberNumber = (name) =>
-  api.get('/members/next-number', { params: name ? { name } : {} });
+export const getNextMemberNumber = (name, type) =>
+  api.get('/members/next-number', { params: { ...(name ? { name } : {}), ...(type ? { type } : {}) } });
 export const checkPhone = (phone, exclude) => api.get('/members/check-phone', { params: { phone, exclude } });
 export const bulkImportMembers = (members) => api.post('/members/bulk', { members });
 export const getMemberNumberConfig = () => api.get('/member-number-config');
