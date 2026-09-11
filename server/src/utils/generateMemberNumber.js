@@ -4,6 +4,7 @@ const { getDb } = require('../config/database');
 const SCOPES = {
   general: { prefix: 'prefix', code: 'code', separator: 'separator', include_year: 'include_year', padding: 'padding', suffix: 'suffix', seq: 'next_seq', mode: 'mode' },
   lifetime: { prefix: 'lt_prefix', code: 'lt_code', separator: 'lt_separator', include_year: 'lt_include_year', padding: 'lt_padding', suffix: 'lt_suffix', seq: 'lt_next_seq', mode: 'lt_mode' },
+  new: { prefix: 'nm_prefix', code: 'nm_code', separator: 'nm_separator', include_year: 'nm_include_year', padding: 'nm_padding', suffix: 'nm_suffix', seq: 'nm_next_seq', mode: 'nm_mode' },
 };
 
 function getConfigRow(db) {
@@ -132,9 +133,12 @@ const generateMemberNumber = (o) => generateNumber('general', o);
 const peekMemberNumber = (o) => peekNumber('general', o);
 const generateLifetimeNumber = (o) => generateNumber('lifetime', o);
 const peekLifetimeNumber = (o) => peekNumber('lifetime', o);
+const generateNewNumber = (o) => generateNumber('new', o);
+const peekNewNumber = (o) => peekNumber('new', o);
 
 module.exports = {
   generateMemberNumber, peekMemberNumber,
   generateLifetimeNumber, peekLifetimeNumber,
+  generateNewNumber, peekNewNumber,
   generateNumber, peekNumber, fieldsFor, nameInitial, alphaSequences,
 };

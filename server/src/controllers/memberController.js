@@ -3,7 +3,16 @@ const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const { getDb } = require('../config/database');
 const { ok, created, paginated, error } = require('../utils/apiResponse');
-const { generateMemberNumber, peekMemberNumber, generateLifetimeNumber, peekLifetimeNumber } = require('../utils/generateMemberNumber');
+const {
+  generateMemberNumber, peekMemberNumber, generateLifetimeNumber, peekLifetimeNumber,
+  generateNewNumber, peekNewNumber,
+} = require('../utils/generateMemberNumber');
+
+// Pick the number generator/peeker that matches a membership type.
+const genForType = (type) =>
+  type === 'Lifetime' ? generateLifetimeNumber : type === 'General' ? generateMemberNumber : generateNewNumber;
+const peekForType = (type) =>
+  type === 'Lifetime' ? peekLifetimeNumber : type === 'General' ? peekMemberNumber : peekNewNumber;
 
 // Default member login password ("password"), hashed once and reused.
 const DEFAULT_MEMBER_PASSWORD_HASH = bcrypt.hashSync('password', 10);
@@ -36,10 +45,7 @@ function auditLog(db, userId, action, targetId, details) {
 
 function nextMemberNumber(req, res) {
   const { name, type } = req.query;
-  const num = type === 'Lifetime'
-    ? peekLifetimeNumber({ name })
-    : peekMemberNumber({ name });
-  return ok(res, { member_number: num });
+  return ok(res, { member_number: peekForType(type)({ name }) });
 }
 
 // SQL expression that strips common separators from a stored phone for comparison.
@@ -217,9 +223,7 @@ function createMember(req, res) {
     const clash = db.prepare('SELECT id FROM members WHERE member_number = ?').get(member_number);
     if (clash) return error(res, `Member number "${member_number}" is already in use`, 400, 'DUPLICATE');
   } else {
-    member_number = membership_type === 'Lifetime'
-      ? generateLifetimeNumber({ name: full_name })
-      : generateMemberNumber({ name: full_name });
+    member_number = genForType(membership_type)({ name: full_name });
   }
 
   // Membership dates follow the chosen type (each defaults to the join date).

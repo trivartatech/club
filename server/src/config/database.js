@@ -101,6 +101,14 @@ function initDb() {
       lt_next_seq INTEGER NOT NULL DEFAULT 1,
       lt_mode TEXT NOT NULL DEFAULT 'yearly',
       lt_code TEXT NOT NULL DEFAULT '',
+      nm_prefix TEXT NOT NULL DEFAULT 'NM',
+      nm_separator TEXT NOT NULL DEFAULT '-',
+      nm_include_year INTEGER NOT NULL DEFAULT 0,
+      nm_padding INTEGER NOT NULL DEFAULT 1,
+      nm_suffix TEXT NOT NULL DEFAULT '',
+      nm_next_seq INTEGER NOT NULL DEFAULT 1,
+      nm_mode TEXT NOT NULL DEFAULT 'alpha',
+      nm_code TEXT NOT NULL DEFAULT 'CIC',
       updated_by INTEGER REFERENCES users(id),
       updated_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
@@ -162,6 +170,14 @@ function initDb() {
     ['code', "TEXT NOT NULL DEFAULT ''"],
     ['lt_mode', "TEXT NOT NULL DEFAULT 'yearly'"],
     ['lt_code', "TEXT NOT NULL DEFAULT ''"],
+    ['nm_prefix', "TEXT NOT NULL DEFAULT 'NM'"],
+    ['nm_separator', "TEXT NOT NULL DEFAULT '-'"],
+    ['nm_include_year', 'INTEGER NOT NULL DEFAULT 0'],
+    ['nm_padding', 'INTEGER NOT NULL DEFAULT 1'],
+    ['nm_suffix', "TEXT NOT NULL DEFAULT ''"],
+    ['nm_next_seq', 'INTEGER NOT NULL DEFAULT 1'],
+    ['nm_mode', "TEXT NOT NULL DEFAULT 'alpha'"],
+    ['nm_code', "TEXT NOT NULL DEFAULT 'CIC'"],
   ];
   for (const [name, def] of ltColumns) {
     if (!mncCols.includes(name)) {

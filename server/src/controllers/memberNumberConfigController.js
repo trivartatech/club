@@ -1,17 +1,20 @@
 const { getDb } = require('../config/database');
 const { ok, error } = require('../utils/apiResponse');
-const { peekMemberNumber, peekLifetimeNumber, fieldsFor, alphaSequences } = require('../utils/generateMemberNumber');
+const { peekMemberNumber, peekLifetimeNumber, peekNewNumber, fieldsFor, alphaSequences } = require('../utils/generateMemberNumber');
 
 function withPreviews(config) {
   const db = getDb();
   const general = fieldsFor(config, 'general');
   const lifetime = fieldsFor(config, 'lifetime');
+  const newm = fieldsFor(config, 'new');
   return {
     ...config,
     preview: peekMemberNumber(),
     lifetime_preview: peekLifetimeNumber(),
+    new_preview: peekNewNumber(),
     alpha_sequences: general.mode === 'alpha' ? alphaSequences(db, general) : null,
     lt_alpha_sequences: lifetime.mode === 'alpha' ? alphaSequences(db, lifetime) : null,
+    nm_alpha_sequences: newm.mode === 'alpha' ? alphaSequences(db, newm) : null,
   };
 }
 
@@ -47,8 +50,11 @@ const norm = (b, p) => ({
 function updateConfig(req, res) {
   const general = norm(req.body, '');
   const lifetime = norm(req.body, 'lt_');
+  const newm = norm(req.body, 'nm_');
 
-  const err = validateFormat('Standard format', general) || validateFormat('Lifetime format', lifetime);
+  const err = validateFormat('Standard format', general)
+    || validateFormat('Lifetime format', lifetime)
+    || validateFormat('New format', newm);
   if (err) return error(res, err, 400, 'VALIDATION_ERROR');
 
   const db = getDb();
@@ -58,13 +64,14 @@ function updateConfig(req, res) {
     f.prefix || '', f.separator || '', f.include_year ? 1 : 0, Number(f.padding),
     f.suffix || '', Number(f.next_seq) || 1, f.mode, f.code || '',
   ];
-  const params = [...cols(general), ...cols(lifetime)];
+  const params = [...cols(general), ...cols(lifetime), ...cols(newm)];
 
   if (existing) {
     db.prepare(`
       UPDATE member_number_config SET
         prefix = ?, separator = ?, include_year = ?, padding = ?, suffix = ?, next_seq = ?, mode = ?, code = ?,
         lt_prefix = ?, lt_separator = ?, lt_include_year = ?, lt_padding = ?, lt_suffix = ?, lt_next_seq = ?, lt_mode = ?, lt_code = ?,
+        nm_prefix = ?, nm_separator = ?, nm_include_year = ?, nm_padding = ?, nm_suffix = ?, nm_next_seq = ?, nm_mode = ?, nm_code = ?,
         updated_by = ?, updated_at = datetime('now')
       WHERE id = ?
     `).run(...params, req.user.id, existing.id);
@@ -72,8 +79,9 @@ function updateConfig(req, res) {
     db.prepare(`
       INSERT INTO member_number_config
         (prefix, separator, include_year, padding, suffix, next_seq, mode, code,
-         lt_prefix, lt_separator, lt_include_year, lt_padding, lt_suffix, lt_next_seq, lt_mode, lt_code, updated_by)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         lt_prefix, lt_separator, lt_include_year, lt_padding, lt_suffix, lt_next_seq, lt_mode, lt_code,
+         nm_prefix, nm_separator, nm_include_year, nm_padding, nm_suffix, nm_next_seq, nm_mode, nm_code, updated_by)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(...params, req.user.id);
   }
 

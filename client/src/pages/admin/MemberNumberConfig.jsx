@@ -113,15 +113,17 @@ export default function MemberNumberConfig() {
   const { addToast } = useToast();
   const [general, setGeneral] = useState(null);
   const [lifetime, setLifetime] = useState(null);
+  const [newm, setNewm] = useState(null);
   const [serverPreviews, setServerPreviews] = useState({});
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     getMemberNumberConfig().then(r => {
       const d = r.data.data;
+      setNewm({ prefix: d.nm_prefix ?? 'NM', code: d.nm_code ?? '', separator: d.nm_separator ?? '-', include_year: !!d.nm_include_year, padding: d.nm_padding ?? 1, suffix: d.nm_suffix ?? '', next_seq: d.nm_next_seq ?? 1, mode: d.nm_mode || 'alpha' });
       setGeneral({ prefix: d.prefix ?? 'CCM', code: d.code ?? '', separator: d.separator ?? '-', include_year: !!d.include_year, padding: d.padding ?? 4, suffix: d.suffix ?? '', next_seq: d.next_seq ?? 1, mode: d.mode || 'yearly' });
       setLifetime({ prefix: d.lt_prefix ?? 'CCL', code: d.lt_code ?? '', separator: d.lt_separator ?? '-', include_year: !!d.lt_include_year, padding: d.lt_padding ?? 4, suffix: d.lt_suffix ?? '', next_seq: d.lt_next_seq ?? 1, mode: d.lt_mode || 'yearly' });
-      setServerPreviews({ general: d.preview, lifetime: d.lifetime_preview, genSeqs: d.alpha_sequences, ltSeqs: d.lt_alpha_sequences });
+      setServerPreviews({ general: d.preview, lifetime: d.lifetime_preview, new: d.new_preview, genSeqs: d.alpha_sequences, ltSeqs: d.lt_alpha_sequences, nmSeqs: d.nm_alpha_sequences });
     }).catch(() => addToast('Failed to load configuration', 'error'));
   }, []);
 
@@ -134,9 +136,11 @@ export default function MemberNumberConfig() {
         padding: Number(general.padding), suffix: general.suffix, next_seq: Number(general.next_seq), mode: general.mode,
         lt_prefix: lifetime.prefix, lt_code: lifetime.code, lt_separator: lifetime.separator, lt_include_year: lifetime.include_year,
         lt_padding: Number(lifetime.padding), lt_suffix: lifetime.suffix, lt_next_seq: Number(lifetime.next_seq), lt_mode: lifetime.mode,
+        nm_prefix: newm.prefix, nm_code: newm.code, nm_separator: newm.separator, nm_include_year: newm.include_year,
+        nm_padding: Number(newm.padding), nm_suffix: newm.suffix, nm_next_seq: Number(newm.next_seq), nm_mode: newm.mode,
       });
       const d = res.data.data;
-      setServerPreviews({ general: d.preview, lifetime: d.lifetime_preview, genSeqs: d.alpha_sequences, ltSeqs: d.lt_alpha_sequences });
+      setServerPreviews({ general: d.preview, lifetime: d.lifetime_preview, new: d.new_preview, genSeqs: d.alpha_sequences, ltSeqs: d.lt_alpha_sequences, nmSeqs: d.nm_alpha_sequences });
       addToast('Member number format updated');
     } catch (err) {
       addToast(err.response?.data?.message || 'Failed to save', 'error');
@@ -145,7 +149,7 @@ export default function MemberNumberConfig() {
     }
   }
 
-  if (!general || !lifetime) return <div className="text-gray-400">Loading...</div>;
+  if (!general || !lifetime || !newm) return <div className="text-gray-400">Loading...</div>;
 
   // For name-initial mode, take the real "next sequence" from the server preview
   // (computed against existing data for the sample letter "A") so the live preview
@@ -153,21 +157,39 @@ export default function MemberNumberConfig() {
   const alphaNext = (sp) => { const m = String(sp || '').match(/(\d+)\s*$/); return m ? parseInt(m[1], 10) : 1; };
   const genSeq = general.mode === 'alpha' ? alphaNext(serverPreviews.general) : (Number(general.next_seq) || 1);
   const ltSeq = lifetime.mode === 'alpha' ? alphaNext(serverPreviews.lifetime) : (Number(lifetime.next_seq) || 1);
+  const nmSeq = newm.mode === 'alpha' ? alphaNext(serverPreviews.new) : (Number(newm.next_seq) || 1);
   const genLive = buildMemberNumberPreview(general, genSeq);
   const ltLive = buildMemberNumberPreview(lifetime, ltSeq);
+  const nmLive = buildMemberNumberPreview(newm, nmSeq);
+  const alphaNote = 'Shown for sample letter “A” — each letter has its own counter. Save to refresh.';
 
   return (
     <form onSubmit={handleSubmit} className="max-w-lg mx-auto space-y-4">
-      {/* Standard members */}
+      {/* New members */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-5">
         <div>
-          <h3 className="font-semibold">Standard Member Number</h3>
-          <p className="text-sm text-gray-500 mt-1">Assigned when a member is added (New / General).</p>
+          <h3 className="font-semibold">New Member Number</h3>
+          <p className="text-sm text-gray-500 mt-1">Assigned when a member is added as <span className="font-medium">New</span>.</p>
         </div>
         <Preview
-          label="Next number preview"
+          label="Next new-member number preview"
+          value={nmLive}
+          note={newm.mode === 'alpha' ? alphaNote : null}
+        />
+        <FormatFields form={newm} onChange={setNewm} idPrefix="nm" />
+        {newm.mode === 'alpha' && <AlphaSequenceGrid form={newm} sequences={serverPreviews.nmSeqs} />}
+      </div>
+
+      {/* General members */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-5">
+        <div>
+          <h3 className="font-semibold">General Member Number</h3>
+          <p className="text-sm text-gray-500 mt-1">Assigned when a member is added as <span className="font-medium">General</span>.</p>
+        </div>
+        <Preview
+          label="Next general number preview"
           value={genLive}
-          note={general.mode === 'alpha' ? 'Shown for sample letter “A” — each letter has its own counter. Save to refresh.' : null}
+          note={general.mode === 'alpha' ? alphaNote : null}
         />
         <FormatFields form={general} onChange={setGeneral} idPrefix="gen" />
         {general.mode === 'alpha' && <AlphaSequenceGrid form={general} sequences={serverPreviews.genSeqs} />}
